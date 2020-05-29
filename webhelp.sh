@@ -13,11 +13,16 @@ EMAIL='email@mail.com'
 declare -A COMMANDS=(
   [exit]="Exits program"
   [help]="Provides commands list with descriptions"
+  [version]="Displays script's version"
   [mkdir]="Creates directory and basic HTML template within given path, example: mkdir [path] [directory name]"
   [addeditor]="Lists available code editors"
   [setupvenv]="Creates python virtual enviroment, example: setupvenv create [name]; setupvenv install"
-  [setupdjango]="Installs dependencies like PIP and VENV, also created virtual enviroment and installs Django in it"
+  [setupdjango]="Installs dependencies like PIP and VENV, also creates virtual enviroment and installs Django in it"
 )
+
+function display_version() {
+  echo "Current version: $1"
+}
 
 function display_greetings() {
   echo "---------------------"
@@ -224,6 +229,7 @@ function read_input() {
   case $command in
     "help" ) display_help ;;
     "exit" ) exit_script ;;
+    "version" ) display_version $VERSION ;;
     "mkdir" ) create_default_directory $arg1 $arg2 ;;
     "addeditor" ) install_editor $arg1 ;;
     "setupvenv" ) setup_venv $arg1 $arg2 ;;
