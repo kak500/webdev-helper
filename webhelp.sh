@@ -1,13 +1,22 @@
 #!/usr/bin/env bash
 
-VERSION='1.0'
+# 0 - false
+# 1 - true
+# Okay
+# printf "\033[32mvenv created in $venv_path \033[0m\n"
+# Error
+# printf "\033[31merror \033[0m\n"
+
+VERSION='1.2'
 AUTHOR='Krzysztof Kowalski'
 EMAIL='email@mail.com'
 declare -A COMMANDS=(
   [exit]="Exits program"
   [help]="Provides commands list with descriptions"
-  [mkdir]="Creates directory and basic HTML template within given path,\n\t example: mkdir [path] [directory name]"
-  [addeditor]="Install code editors"
+  [mkdir]="Creates directory and basic HTML template within given path, example: mkdir [path] [directory name]"
+  [addeditor]="Lists available code editors"
+  [setupvenv]="Creates python virtual enviroment, example: setupvenv create [name]; setupvenv install"
+  [setupdjango]="Installs dependencies like PIP and VENV, also created virtual enviroment and installs Django in it"
 )
 
 function display_greetings() {
@@ -18,23 +27,133 @@ function display_greetings() {
   echo "---------------------"
 }
 
-function install_editor() {
+function display_help() {
+  echo "Usage: "
+  for K in "${!COMMANDS[@]}"; do
+    printf "$K --- ${COMMANDS[$K]}\n";
+  done
+}
 
-  # if [[ -z $1 ]]; then
-  #   echo "'addeditor' expects argument"
-  #   return 1
-  # fi
-  # echo "Choose editor"
+function exit_script() {
+  printf "Exiting program...\n"
+  exit 1
+}
+
+function install_pip() {
+  echo "Installing PIP..."
+  sudo apt-get install python3-pip
+}
+
+function is_package_installed() {
+  local package_name=$1
+  dpkg -s $package_name &> /dev/null
+  if [[ $? -eq 0 ]]; then
+    echo true
+  else
+    echo false
+  fi
+}
+
+function install_package() {
+  local package_name=$1
+  case $package_name in
+    "pip" ) printf "\033[33mInstalling $package_name... \033[0m\n"; sudo apt-get install python3-pip
+      ;;
+    "venv" ) printf "\033[33mInstalling $package_name... \033[0m\n"; sudo apt-get install python3-venv;
+        ;;
+  esac
+}
+
+
+function setup_django() {
+  echo "Setting up Django"
+  if [ $(is_package_installed python3-pip) = true ]; then
+    printf '\033[32mpython3-pip installed \033[0m\n'
+  else
+    install_package pip
+    printf '\033[32mpython3-pip installed \033[0m\n'
+  fi
+  if [ $(is_package_installed python3-venv) = true ]; then
+    printf '\033[32mpython3-venv installed \033[0m\n'
+  else
+    install_package venv
+    printf '\033[32mpython3-venv installed successfully \033[0m\n'
+  fi
+  echo "Creating venv"
+  read -e -p ">> Select path: " venv_path
+  echo $venv_path
+  create_venv $venv_path
+  source $venv_path/bin/activate
+  pip freeze
+  pip show django &> /dev/null
+  if [[ $? -eq 0 ]]; then
+    printf "\033[32mDjango is already installed \033[0m\n"
+  else
+    pip install Django
+    printf "\033[32mDjango installed successfully \033[0m\n"
+  fi
+  echo "pip packages: "
+  pip freeze
+}
+
+function create_venv() {
+  local venv_path=$1
+  if [[ -d $venv_path ]]; then
+    printf "\033[33mPath already exists \033[0m\n"
+    return 1
+  else
+    python3 -m venv $venv_path
+    if [[ $? -eq 0 ]]; then
+      printf "\033[32mvenv created in $venv_path \033[0m\n"
+    else
+      printf "\033[33mvenv wasn't created \033[0m\n"
+    fi
+  fi
+}
+
+function setup_venv() {
+  if [[ -z $1 ]]; then
+    echo "'setupvenv' expects argument"
+    return 1
+  fi
+
+  local arg1=$1
+  local arg2=$2
+
+  case $arg1 in
+    "install" )
+    if [ $(is_package_installed python3-venv) = true ]; then
+      echo "Package is already installed";
+    else
+      echo "Installing venv...";
+      sudo apt-get install python3-venv;
+      printf '\033[32mVenv installed \033[0m\n'
+    fi
+      ;;
+    "create" )
+    if [[ -z $arg2 ]]; then
+      echo "It expects argument";
+    else
+      echo "Creating venv...";
+      python3 -m venv $arg2;
+      printf '\033[32mVenv created \033[0m\n';
+    fi
+      ;;
+  esac
+}
+
+function install_editor() {
   echo "sublime"
   echo "atom"
-  read -p "Choose: " editor
+  read -p ">> Choose: " editor
 
   case $editor in
     "atom" ) echo "Installing selected editor...";
     echo "Insert su password";
     sudo add-apt-repository ppa:webupd8team/atom;
     sudo apt-get update;
-    sudo apt-get install atom
+    sudo apt-get install atom;
+    printf '\033[32mEditor successfully installed \033[0m\n'
       ;;
     "sublime" ) echo "Installing selected editor...";
     echo "Insert su password";
@@ -42,11 +161,10 @@ function install_editor() {
     echo "deb https://download.sublimetext.com/ apt/stable/" | sudo tee /etc/apt/sources.list.d/sublime-text.list;
     sudo apt-get update;
     sudo apt-get install sublime-text;
+    printf '\033[32mEditor successfully installed \033[0m\n';
     ;;
     * ) echo "This editor is not supported."
   esac
-  printf '\033[32mEditor successfully installed \033[0m\n'
-
 }
 
 function create_default_directory() {
@@ -68,12 +186,12 @@ function create_default_directory() {
     echo "$directory_name exists"
   else
     # echo "Creating directory $directory_name"
-    mkdir $destination_path/$directory_name
-    mkdir $destination_path/$directory_name/static
-    touch $destination_path/$directory_name/index.html
-    touch $destination_path/$directory_name/static/style.css
-    touch $destination_path/$directory_name/static/main.js
-    create_html_template $destination_path/$directory_name/index.html
+    mkdir $destination_path$directory_name
+    mkdir $destination_path$directory_name/static
+    touch $destination_path$directory_name/index.html
+    touch $destination_path$directory_name/static/style.css
+    touch $destination_path$directory_name/static/main.js
+    create_html_template $destination_path$directory_name/index.html
     printf '\033[32mDirectory created \033[0m\n'
     tree $directory_name
   fi
@@ -84,8 +202,8 @@ function create_html_template() {
   echo '<!DOCTYPE html>
     <html lang="en" dir="ltr">
       <head>
-        <link rel="stylesheet" href="/static/style.css">
-        <script src="/static/main.js" charset="utf-8"></script>
+        <link rel="stylesheet" href="static/style.css">
+        <script src="static/main.js" charset="utf-8"></script>
         <meta charset="utf-8">
         <title>Template</title>
       </head>
@@ -97,17 +215,6 @@ function create_html_template() {
 ' > $file_directory
 }
 
-function display_help() {
-  echo "Usage: "
-  for K in "${!COMMANDS[@]}"; do
-    printf "$K --- ${COMMANDS[$K]}\n";
-  done
-}
-
-function exit_script() {
-  printf "Exiting program...\n"
-  exit 1
-}
 
 function read_input() {
   local command=$(echo $1 | awk '{print $1}' )
@@ -119,19 +226,30 @@ function read_input() {
     "exit" ) exit_script ;;
     "mkdir" ) create_default_directory $arg1 $arg2 ;;
     "addeditor" ) install_editor $arg1 ;;
+    "setupvenv" ) setup_venv $arg1 $arg2 ;;
+    "setupdjango" ) setup_django ;;
     * ) echo "'$command' command not found"
   esac
 }
-
-
 
 function main() {
   clear
   display_greetings $VERSION "$AUTHOR"
   while [[ true ]]; do
-    read -p ">> " input
+    read -e -p ">> " input
     read_input $input
   done
+
+  # is_package_installed blender
+  # if [ $(is_package_installed python3-venv) = true ] ; then
+  #   echo "Package installed"
+  # fi
+  # create_venv ./venv3
+
+  # source ./venv3/bin/activate
+  # pip freeze
+  # pip install Django
+  # pip freeze
 }
 
 main
