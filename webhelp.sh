@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
-# 0 - false
-# 1 - true
+
 # Okay
 # printf "\033[32mvenv created in $venv_path \033[0m\n"
 # Error
@@ -16,7 +15,6 @@ declare -A COMMANDS=(
   [version]="Displays script's version"
   [mkdir]="Creates directory and basic HTML template within given path, example: mkdir [path] [directory name]"
   [addeditor]="Lists available code editors"
-  [setupvenv]="Creates python virtual enviroment, example: setupvenv create [name]; setupvenv install"
   [setupdjango]="Installs dependencies like PIP and VENV, also creates virtual enviroment and installs Django in it"
 )
 
@@ -86,7 +84,6 @@ function setup_django() {
   fi
   echo "Creating venv"
   read -e -p ">> Select path: " venv_path
-  echo $venv_path
   create_venv $venv_path
   source $venv_path/bin/activate
   pip freeze
@@ -101,51 +98,16 @@ function setup_django() {
   pip freeze
 }
 
-function create_venv() {
-  local venv_path=$1
-  if [[ -d $venv_path ]]; then
-    printf "\033[33mPath already exists \033[0m\n"
-    return 1
-  else
-    python3 -m venv $venv_path
-    if [[ $? -eq 0 ]]; then
-      printf "\033[32mvenv created in $venv_path \033[0m\n"
-    else
-      printf "\033[33mvenv wasn't created \033[0m\n"
-    fi
-  fi
+function display_cheatsheet() {
+  echo "Django cheat sheet"
+  echo "----------------"
+  printf "CREATE PROJECT\ndjango-admin start PROJECTNAME\n"
+  echo "----------------"
+  printf "RUN SERVER\npython manage.py runserver\n"
+  echo "----------------"
+  printf "CREATE AN APP\npython manage.py start app APPNAME\n"
 }
 
-function setup_venv() {
-  if [[ -z $1 ]]; then
-    echo "'setupvenv' expects argument"
-    return 1
-  fi
-
-  local arg1=$1
-  local arg2=$2
-
-  case $arg1 in
-    "install" )
-    if [ $(is_package_installed python3-venv) = true ]; then
-      echo "Package is already installed";
-    else
-      echo "Installing venv...";
-      sudo apt-get install python3-venv;
-      printf '\033[32mVenv installed \033[0m\n'
-    fi
-      ;;
-    "create" )
-    if [[ -z $arg2 ]]; then
-      echo "It expects argument";
-    else
-      echo "Creating venv...";
-      python3 -m venv $arg2;
-      printf '\033[32mVenv created \033[0m\n';
-    fi
-      ;;
-  esac
-}
 
 function install_editor() {
   echo "sublime"
@@ -190,7 +152,6 @@ function create_default_directory() {
   if [[ -d "$destination_path/$directory_name" ]]; then
     echo "$directory_name exists"
   else
-    # echo "Creating directory $directory_name"
     mkdir $destination_path$directory_name
     mkdir $destination_path$directory_name/static
     touch $destination_path$directory_name/index.html
@@ -239,23 +200,19 @@ function read_input() {
 }
 
 function main() {
-  clear
-  display_greetings $VERSION "$AUTHOR"
-  while [[ true ]]; do
-    read -e -p ">> " input
-    read_input $input
-  done
 
-  # is_package_installed blender
-  # if [ $(is_package_installed python3-venv) = true ] ; then
-  #   echo "Package installed"
-  # fi
-  # create_venv ./venv3
+  if [[ $1 = "cheat" ]]; then
+    display_cheatsheet
+  else
+    clear
+    display_greetings $VERSION "$AUTHOR"
+    while [[ true ]]; do
+      read -e -p ">> " input
+      read_input $input
+    done
 
-  # source ./venv3/bin/activate
-  # pip freeze
-  # pip install Django
-  # pip freeze
+  fi
+
 }
 
-main
+main $1
